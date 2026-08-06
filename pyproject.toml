@@ -1,5 +1,5 @@
 [project]
-name = "comfyui-qwen-framekit"
+name = "qwen-framekit"
 version = "0.1.0"
 description = "ComfyUI nodes for Qwen image camera-angle LoRA control and aspect-aware resizing."
 readme = "README.md"
@@ -10,6 +10,7 @@ dependencies = []
 
 [project.urls]
 Repository = "https://github.com/uron83/ComfyUI-Qwen-FrameKit"
+"Bug Tracker" = "https://github.com/uron83/ComfyUI-Qwen-FrameKit/issues"
 
 [tool.comfy]
 PublisherId = "uron83"
