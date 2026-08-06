@@ -141,7 +141,7 @@ const ANGLE_CAMERA_SUBJECT_MIN_WIDTH = 1.2;
 const ANGLE_CAMERA_SUBJECT_MAX_WIDTH = 3.0;
 const ANGLE_CAMERA_SUBJECT_OPACITY = 0.68;
 const ANGLE_CAMERA_WIDGET_MIN_HEIGHT = 420;
-const ANGLE_CAMERA_WIDGET_NODE_CHROME = 190;
+const ANGLE_CAMERA_WIDGET_HEIGHT = 460;
 
 function angleCameraRadius(distance) {
     return ANGLE_CAMERA_DISTANCE_RADII[distance] || ANGLE_CAMERA_DISTANCE_RADII[1.0];
@@ -1206,7 +1206,7 @@ class QwenAngleCameraWidget {
         this.container.className = 'qwen-angle-camera-control';
         this.container.style.cssText = `
             width: 100%;
-            height: ${ANGLE_CAMERA_WIDGET_MIN_HEIGHT}px;
+            height: ${ANGLE_CAMERA_WIDGET_HEIGHT}px;
             min-height: ${ANGLE_CAMERA_WIDGET_MIN_HEIGHT}px;
             position: relative;
             overflow: hidden;
@@ -1519,9 +1519,8 @@ class QwenAngleCameraWidget {
     resize() {
         if (!this.renderer || !this.container) return;
         const nodeWidth = Number(this.node?.size?.[0]) || 430;
-        const nodeHeight = Number(this.node?.size?.[1]) || 620;
         const width = Math.max(260, Math.floor(nodeWidth - 28));
-        const height = Math.max(ANGLE_CAMERA_WIDGET_MIN_HEIGHT, Math.floor(nodeHeight - ANGLE_CAMERA_WIDGET_NODE_CHROME));
+        const height = ANGLE_CAMERA_WIDGET_HEIGHT;
 
         this.container.style.width = `${width}px`;
         this.container.style.minWidth = `${width}px`;
@@ -1598,7 +1597,7 @@ app.registerExtension({
             domWidget.widget3D = widget3D;
             domWidget.computeSize = () => [
                 Math.max(260, Math.floor((node.size?.[0] || 430) - 28)),
-                Math.max(ANGLE_CAMERA_WIDGET_MIN_HEIGHT + 20, Math.floor((node.size?.[1] || 720) - 170))
+                ANGLE_CAMERA_WIDGET_HEIGHT + 20
             ];
 
             if (!node.size || node.size[0] < 430 || node.size[1] < 720) {
