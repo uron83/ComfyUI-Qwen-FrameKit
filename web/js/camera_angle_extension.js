@@ -14,41 +14,32 @@
  */
 
 import { app } from "../../../scripts/app.js";
+import * as ThreeModule from "../vendor/three.module.js";
 
-// Load Three.js dynamically
-const THREE_URL = "https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js";
-
-// Store Three.js reference
-let THREE = null;
-let threeLoadPromise = null;
-
-// Load Three.js dynamically (singleton pattern)
 function loadThreeJS() {
-    if (threeLoadPromise) {
-        return threeLoadPromise;
-    }
-    
-    threeLoadPromise = new Promise((resolve, reject) => {
-        if (window.THREE) {
-            THREE = window.THREE;
-            resolve(THREE);
-            return;
-        }
-        
-        const script = document.createElement('script');
-        script.src = THREE_URL;
-        script.onload = () => {
-            THREE = window.THREE;
-            resolve(THREE);
-        };
-        script.onerror = () => {
-            threeLoadPromise = null;
-            reject(new Error("Failed to load Three.js"));
-        };
-        document.head.appendChild(script);
-    });
-    
-    return threeLoadPromise;
+    return Promise.resolve(ThreeModule);
+}
+
+const THREE = ThreeModule;
+
+function createInlineLabel(text) {
+    const label = document.createElement('span');
+    label.textContent = text;
+    label.style.cssText = 'color: #888; margin-right: 4px; font-size: 9px;';
+    return label;
+}
+
+function appendLegendItem(parent, marker, color, text, extraStyle = '') {
+    const item = document.createElement('span');
+    if (extraStyle) item.style.cssText = extraStyle;
+
+    const markerEl = document.createElement('b');
+    markerEl.textContent = marker;
+    markerEl.style.color = color;
+
+    item.appendChild(markerEl);
+    item.appendChild(document.createTextNode(` ${text}`));
+    parent.appendChild(item);
 }
 
 // Camera angle data - must match Python backend
@@ -139,6 +130,16 @@ const HEIGHT_COLORS = [
 ];
 
 const SELECTED_COLOR = 0xe94560;
+const ANGLE_CAMERA_DISTANCE_OPTIONS = [0.6, 1.0, 1.8];
+const ANGLE_CAMERA_DISTANCE_RADII = {
+    0.6: 1.55,
+    1.0: 2.25,
+    1.8: 2.75,
+};
+
+function angleCameraRadius(distance) {
+    return ANGLE_CAMERA_DISTANCE_RADII[distance] || ANGLE_CAMERA_DISTANCE_RADII[1.0];
+}
 
 /**
  * Create the 3D Camera Angle Widget for a node
@@ -281,7 +282,7 @@ class CameraAngle3DWidget {
         // Direction filters row
         const dirRow = document.createElement('div');
         dirRow.style.cssText = 'margin-bottom: 6px; display: flex; flex-wrap: wrap; gap: 4px; align-items: center;';
-        dirRow.innerHTML = '<span style="color: #888; margin-right: 4px; font-size: 9px;">DIR:</span>';
+        dirRow.appendChild(createInlineLabel('DIR:'));
         
         const dirButtons = [
             { label: 'Front', key: 'front', color: '#4CAF50' },
@@ -301,7 +302,7 @@ class CameraAngle3DWidget {
         // Shot size filters row
         const sizeRow = document.createElement('div');
         sizeRow.style.cssText = 'margin-bottom: 6px; display: flex; flex-wrap: wrap; gap: 4px; align-items: center;';
-        sizeRow.innerHTML = '<span style="color: #888; margin-right: 4px; font-size: 9px;">SIZE:</span>';
+        sizeRow.appendChild(createInlineLabel('SIZE:'));
         
         const sizeButtons = [
             { label: 'Close', key: 0, color: '#4a90d9' },
@@ -319,7 +320,7 @@ class CameraAngle3DWidget {
         // Height filters row
         const heightRow = document.createElement('div');
         heightRow.style.cssText = 'margin-bottom: 8px; display: flex; flex-wrap: wrap; gap: 4px; align-items: center;';
-        heightRow.innerHTML = '<span style="color: #888; margin-right: 4px; font-size: 9px;">HGT:</span>';
+        heightRow.appendChild(createInlineLabel('HGT:'));
         
         const heightButtons = [
             { label: 'Low', key: 0, color: '#e74c3c' },
@@ -352,12 +353,23 @@ class CameraAngle3DWidget {
         // Add legend
         const legendRow = document.createElement('div');
         legendRow.style.cssText = 'margin-top: 8px; padding-top: 6px; border-top: 1px solid #0f3460; display: flex; gap: 12px; flex-wrap: wrap; font-size: 9px; color: #888;';
-        legendRow.innerHTML = `
-            <span><b style="color:#4a90d9">●</b> Close (inner)</span>
-            <span><b style="color:#50c878">●</b> Medium (middle)</span>
-            <span><b style="color:#f39c12">●</b> Wide (outer)</span>
-            <span style="margin-left: auto;"><b style="color:#4CAF50">■</b> Front <b style="color:#F44336">■</b> Back</span>
-        `;
+        appendLegendItem(legendRow, 'o', '#4a90d9', 'Close (inner)');
+        appendLegendItem(legendRow, 'o', '#50c878', 'Medium (middle)');
+        appendLegendItem(legendRow, 'o', '#f39c12', 'Wide (outer)');
+
+        const facingItem = document.createElement('span');
+        facingItem.style.marginLeft = 'auto';
+        const frontMarker = document.createElement('b');
+        frontMarker.textContent = '#';
+        frontMarker.style.color = '#4CAF50';
+        const backMarker = document.createElement('b');
+        backMarker.textContent = '#';
+        backMarker.style.color = '#F44336';
+        facingItem.appendChild(frontMarker);
+        facingItem.appendChild(document.createTextNode(' Front '));
+        facingItem.appendChild(backMarker);
+        facingItem.appendChild(document.createTextNode(' Back'));
+        legendRow.appendChild(facingItem);
         this.controlsPanel.appendChild(legendRow);
         
         this.container.appendChild(this.controlsPanel);
@@ -437,7 +449,13 @@ class CameraAngle3DWidget {
             display: flex;
             justify-content: space-between;
         `;
-        header.innerHTML = '<span>Selected Angles:</span><span id="selection-count-' + this.node.id + '">0</span>';
+        const title = document.createElement('span');
+        title.textContent = 'Selected Angles:';
+        const count = document.createElement('span');
+        count.id = 'selection-count-' + this.node.id;
+        count.textContent = '0';
+        header.appendChild(title);
+        header.appendChild(count);
         listContainer.appendChild(header);
         
         this.selectionList = document.createElement('div');
@@ -460,7 +478,7 @@ class CameraAngle3DWidget {
         if (countEl) countEl.textContent = sortedIndices.length;
         
         // Build list items
-        this.selectionList.innerHTML = '';
+        this.selectionList.replaceChildren();
         
         sortedIndices.forEach(idx => {
             const angle = CAMERA_ANGLES[idx];
@@ -1000,12 +1018,14 @@ class CameraAngle3DWidget {
                 const rect = this.canvas.getBoundingClientRect();
                 const isSelected = this.selectedIndices.has(group.userData.angleIndex);
                 
-                this.tooltip.innerHTML = `
-                    <strong>${data.direction}</strong><br>
-                    ${data.height}<br>
-                    ${data.size}<br>
-                    <em style="color: ${isSelected ? '#e94560' : '#888'}">${isSelected ? '✓ Selected' : 'Click to select'}</em>
-                `;
+                this.tooltip.textContent = [
+                    data.direction,
+                    data.height,
+                    data.size,
+                    isSelected ? 'Selected' : 'Click to select',
+                ].join('\n');
+                this.tooltip.style.whiteSpace = 'pre-line';
+                this.tooltip.style.color = isSelected ? '#e94560' : '#fff';
                 this.tooltip.style.display = 'block';
                 this.tooltip.style.left = (event.clientX - rect.left + 10) + 'px';
                 this.tooltip.style.top = (event.clientY - rect.top + 10) + 'px';
@@ -1132,14 +1152,20 @@ class QwenAngleCameraWidget {
     }
 
     snap(value, options) {
-        return options.reduce((best, current) => Math.abs(current - value) < Math.abs(best - value) ? current : best);
+        return options.reduce((best, current) => {
+            const currentDistance = Math.abs(current - value);
+            const bestDistance = Math.abs(best - value);
+            return currentDistance < bestDistance || (Math.abs(currentDistance - bestDistance) <= 1e-9 && current > best)
+                ? current
+                : best;
+        });
     }
 
     getState() {
         return {
             azimuth: this.snap((this.getValue('azimuth', 0) + 360) % 360, [0, 45, 90, 135, 180, 225, 270, 315]),
             elevation: this.snap(this.getValue('elevation', 0), [-30, 0, 30, 60]),
-            distance: this.snap(this.getValue('distance', 1.0), [0.6, 1.0, 1.8]),
+            distance: this.snap(this.getValue('distance', 1.0), ANGLE_CAMERA_DISTANCE_OPTIONS),
         };
     }
 
@@ -1231,8 +1257,8 @@ class QwenAngleCameraWidget {
         this.scene = new THREE.Scene();
         this.scene.background = new THREE.Color(0x171820);
 
-        this.camera = new THREE.PerspectiveCamera(45, 1, 0.1, 100);
-        this.camera.position.set(3.8, 2.8, 4.4);
+        this.camera = new THREE.PerspectiveCamera(50, 1, 0.1, 100);
+        this.camera.position.set(4.4, 3.2, 5.4);
         this.camera.lookAt(0, 0.65, 0);
 
         this.renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
@@ -1296,7 +1322,7 @@ class QwenAngleCameraWidget {
 
         const ringMaterial = new THREE.LineBasicMaterial({ color: 0x465063, transparent: true, opacity: 0.72 });
 
-        for (const radius of [1.55, 2.25, 3.15]) {
+        for (const radius of ANGLE_CAMERA_DISTANCE_OPTIONS.map(angleCameraRadius)) {
             const points = [];
             for (let i = 0; i <= 96; i++) {
                 const t = (i / 96) * Math.PI * 2;
@@ -1317,7 +1343,7 @@ class QwenAngleCameraWidget {
     updateElevationArc(state) {
         if (!this.elevationArc) return;
         const targetY = 0.85;
-        const radius = state.distance === 0.6 ? 1.55 : state.distance === 1.0 ? 2.25 : 3.15;
+        const radius = angleCameraRadius(state.distance);
         const theta = THREE.MathUtils.degToRad(state.azimuth);
         const points = [];
 
@@ -1401,7 +1427,7 @@ class QwenAngleCameraWidget {
         this.setValue('elevation', state.elevation);
         this.setValue('distance', state.distance);
 
-        const radius = state.distance === 0.6 ? 1.55 : state.distance === 1.0 ? 2.25 : 3.15;
+        const radius = angleCameraRadius(state.distance);
         const theta = THREE.MathUtils.degToRad(state.azimuth);
         const phi = THREE.MathUtils.degToRad(state.elevation);
         const target = new THREE.Vector3(0, 0.85, 0);
@@ -1456,9 +1482,14 @@ class QwenAngleCameraWidget {
         this.container.addEventListener('wheel', (event) => {
             event.preventDefault();
             event.stopPropagation();
-            const current = this.getValue('distance', 1.0);
-            const next = event.deltaY > 0 ? current + 0.4 : current - 0.4;
-            this.setValue('distance', Math.max(0.6, Math.min(1.8, next)));
+            const current = this.getState().distance;
+            const currentIndex = ANGLE_CAMERA_DISTANCE_OPTIONS.indexOf(current);
+            const direction = event.deltaY > 0 ? 1 : -1;
+            const nextIndex = Math.max(
+                0,
+                Math.min(ANGLE_CAMERA_DISTANCE_OPTIONS.length - 1, currentIndex + direction)
+            );
+            this.setValue('distance', ANGLE_CAMERA_DISTANCE_OPTIONS[nextIndex]);
             this.updateScene();
         }, { passive: false });
     }
@@ -1499,7 +1530,7 @@ class QwenAngleCameraWidget {
         this.camera.aspect = width / height;
         const target = new THREE.Vector3(0, 0.85, 0);
         const aspectBoost = Math.max(1, 1.15 / this.camera.aspect);
-        this.camera.position.set(3.8 * aspectBoost, 2.8 * aspectBoost, 4.4 * aspectBoost);
+        this.camera.position.set(4.4 * aspectBoost, 3.2 * aspectBoost, 5.4 * aspectBoost);
         this.camera.lookAt(target);
         this.camera.updateProjectionMatrix();
     }

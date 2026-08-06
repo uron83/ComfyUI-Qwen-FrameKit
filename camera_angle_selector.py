@@ -203,7 +203,14 @@ class QwenImageEdit2511AngleCamera:
 
     @staticmethod
     def snap_to_nearest(value, options):
-        return min(options, key=lambda x: abs(x - value))
+        best = options[0]
+        best_distance = abs(best - value)
+        for option in options[1:]:
+            distance = abs(option - value)
+            if distance < best_distance or (abs(distance - best_distance) <= 1e-9 and option > best):
+                best = option
+                best_distance = distance
+        return best
 
     @classmethod
     def build_camera_prompt(cls, azimuth, elevation, distance):
