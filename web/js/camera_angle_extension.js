@@ -1277,8 +1277,13 @@ class QwenAngleCameraWidget {
         this.scene.add(new THREE.GridHelper(5, 10, 0x34384a, 0x252936));
         this.createRails();
 
-        this.subjectMaterial = new THREE.MeshBasicMaterial({ color: 0xd6d2c8, side: THREE.DoubleSide });
-        this.subject = new THREE.Mesh(new THREE.PlaneGeometry(1.15, 1.55), this.subjectMaterial);
+        this.subjectMaterial = new THREE.MeshBasicMaterial({
+            color: 0xd6d2c8,
+            side: THREE.DoubleSide,
+            transparent: true,
+            opacity: 0.72,
+        });
+        this.subject = new THREE.Mesh(new THREE.PlaneGeometry(1.45, 1.95), this.subjectMaterial);
         this.subject.position.set(0, 0.85, 0);
         this.scene.add(this.subject);
 
@@ -1409,8 +1414,8 @@ class QwenAngleCameraWidget {
             const image = texture.image;
             if (image?.width && image?.height && this.subject) {
                 const aspect = image.width / image.height;
-                const height = 1.55;
-                const width = Math.max(0.7, Math.min(1.7, height * aspect));
+                const height = 1.95;
+                const width = Math.max(0.9, Math.min(2.15, height * aspect));
                 this.subject.geometry.dispose();
                 this.subject.geometry = new THREE.PlaneGeometry(width, height);
             }
