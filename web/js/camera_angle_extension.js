@@ -136,6 +136,12 @@ const ANGLE_CAMERA_DISTANCE_RADII = {
     1.0: 2.25,
     1.8: 2.75,
 };
+const ANGLE_CAMERA_SUBJECT_HEIGHT = 2.75;
+const ANGLE_CAMERA_SUBJECT_MIN_WIDTH = 1.2;
+const ANGLE_CAMERA_SUBJECT_MAX_WIDTH = 3.0;
+const ANGLE_CAMERA_SUBJECT_OPACITY = 0.68;
+const ANGLE_CAMERA_WIDGET_MIN_HEIGHT = 420;
+const ANGLE_CAMERA_WIDGET_NODE_CHROME = 260;
 
 function angleCameraRadius(distance) {
     return ANGLE_CAMERA_DISTANCE_RADII[distance] || ANGLE_CAMERA_DISTANCE_RADII[1.0];
@@ -1122,6 +1128,7 @@ class QwenAngleCameraWidget {
         this.isDragging = false;
         this.lastPointer = { x: 0, y: 0 };
         this.subject = null;
+        this.subjectFrame = null;
         this.subjectMaterial = null;
         this.cameraMarker = null;
         this.guideLine = null;
@@ -1199,8 +1206,8 @@ class QwenAngleCameraWidget {
         this.container.className = 'qwen-angle-camera-control';
         this.container.style.cssText = `
             width: 100%;
-            height: 360px;
-            min-height: 320px;
+            height: ${ANGLE_CAMERA_WIDGET_MIN_HEIGHT}px;
+            min-height: ${ANGLE_CAMERA_WIDGET_MIN_HEIGHT}px;
             position: relative;
             overflow: hidden;
             background: #171820;
@@ -1281,19 +1288,22 @@ class QwenAngleCameraWidget {
             color: 0xd6d2c8,
             side: THREE.DoubleSide,
             transparent: true,
-            opacity: 0.72,
+            opacity: ANGLE_CAMERA_SUBJECT_OPACITY,
         });
-        this.subject = new THREE.Mesh(new THREE.PlaneGeometry(1.45, 1.95), this.subjectMaterial);
+        this.subject = new THREE.Mesh(
+            new THREE.PlaneGeometry(1.65, ANGLE_CAMERA_SUBJECT_HEIGHT),
+            this.subjectMaterial
+        );
         this.subject.position.set(0, 0.85, 0);
         this.scene.add(this.subject);
 
-        const frame = new THREE.Mesh(
-            new THREE.BoxGeometry(1.22, 1.62, 0.03),
+        this.subjectFrame = new THREE.Mesh(
+            new THREE.BoxGeometry(1.73, ANGLE_CAMERA_SUBJECT_HEIGHT + 0.08, 0.03),
             new THREE.MeshStandardMaterial({ color: 0x2b2f3d, roughness: 0.7 })
         );
-        frame.position.copy(this.subject.position);
-        frame.position.z = -0.025;
-        this.scene.add(frame);
+        this.subjectFrame.position.copy(this.subject.position);
+        this.subjectFrame.position.z = -0.025;
+        this.scene.add(this.subjectFrame);
 
         const camBody = new THREE.Group();
         camBody.add(new THREE.Mesh(
@@ -1414,10 +1424,17 @@ class QwenAngleCameraWidget {
             const image = texture.image;
             if (image?.width && image?.height && this.subject) {
                 const aspect = image.width / image.height;
-                const height = 1.95;
-                const width = Math.max(0.9, Math.min(2.15, height * aspect));
+                const height = ANGLE_CAMERA_SUBJECT_HEIGHT;
+                const width = Math.max(
+                    ANGLE_CAMERA_SUBJECT_MIN_WIDTH,
+                    Math.min(ANGLE_CAMERA_SUBJECT_MAX_WIDTH, height * aspect)
+                );
                 this.subject.geometry.dispose();
                 this.subject.geometry = new THREE.PlaneGeometry(width, height);
+                if (this.subjectFrame) {
+                    this.subjectFrame.geometry.dispose();
+                    this.subjectFrame.geometry = new THREE.BoxGeometry(width + 0.08, height + 0.08, 0.03);
+                }
             }
         });
     }
@@ -1502,15 +1519,16 @@ class QwenAngleCameraWidget {
     resize() {
         if (!this.renderer || !this.container) return;
         const nodeWidth = Number(this.node?.size?.[0]) || 430;
+        const nodeHeight = Number(this.node?.size?.[1]) || 620;
         const width = Math.max(260, Math.floor(nodeWidth - 28));
-        const height = 360;
+        const height = Math.max(ANGLE_CAMERA_WIDGET_MIN_HEIGHT, Math.floor(nodeHeight - ANGLE_CAMERA_WIDGET_NODE_CHROME));
 
         this.container.style.width = `${width}px`;
         this.container.style.minWidth = `${width}px`;
         this.container.style.maxWidth = `${width}px`;
         this.container.style.height = `${height}px`;
         this.container.style.minHeight = `${height}px`;
-        this.container.style.maxHeight = `${height}px`;
+        this.container.style.maxHeight = 'none';
         this.container.style.marginLeft = 'auto';
         this.container.style.marginRight = 'auto';
 
@@ -1521,7 +1539,7 @@ class QwenAngleCameraWidget {
             host.style.maxWidth = `${width}px`;
             host.style.height = `${height}px`;
             host.style.minHeight = `${height}px`;
-            host.style.maxHeight = `${height}px`;
+            host.style.maxHeight = 'none';
             host.style.overflow = 'visible';
             host.style.boxSizing = 'border-box';
         }
@@ -1580,13 +1598,13 @@ app.registerExtension({
             domWidget.widget3D = widget3D;
             domWidget.computeSize = () => [
                 Math.max(260, Math.floor((node.size?.[0] || 430) - 28)),
-                380
+                Math.max(ANGLE_CAMERA_WIDGET_MIN_HEIGHT + 20, Math.floor((node.size?.[1] || 720) - 240))
             ];
 
-            if (!node.size || node.size[0] < 430 || node.size[1] < 620) {
+            if (!node.size || node.size[0] < 430 || node.size[1] < 720) {
                 node.setSize([
                     Math.max(430, node.size?.[0] || 430),
-                    Math.max(620, node.size?.[1] || 620)
+                    Math.max(720, node.size?.[1] || 720)
                 ]);
             }
             node.resizable = true;
