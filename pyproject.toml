@@ -1,0 +1,17 @@
+[project]
+name = "comfyui-qwen-framekit"
+version = "0.1.0"
+description = "ComfyUI nodes for Qwen image camera-angle LoRA control and aspect-aware resizing."
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+authors = [{ name = "ComfyUI-Qwen-Image-Tools contributors" }]
+dependencies = []
+
+[project.urls]
+Repository = "https://github.com/uron83/ComfyUI-Qwen-FrameKit"
+
+[tool.comfy]
+PublisherId = "uron83"
+DisplayName = "ComfyUI Qwen FrameKit"
+Icon = ""

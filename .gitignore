@@ -1,0 +1,19 @@
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+.venv/
+venv/
+env/
+.env
+.DS_Store
+Thumbs.db
+
+# Keep model weights out of the node-pack repository.
+*.safetensors
+*.ckpt
+*.pt
+*.pth
+*.bin
+*.gguf
