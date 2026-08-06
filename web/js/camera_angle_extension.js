@@ -143,6 +143,7 @@ const ANGLE_CAMERA_SUBJECT_OPACITY = 0.68;
 const ANGLE_CAMERA_WIDGET_MIN_HEIGHT = 420;
 const ANGLE_CAMERA_WIDGET_HEIGHT = 460;
 const ANGLE_CAMERA_WIDGET_NODE_CHROME = 190;
+const ANGLE_CAMERA_WIDGET_MARGIN = 10;
 
 function angleCameraRadius(distance) {
     return ANGLE_CAMERA_DISTANCE_RADII[distance] || ANGLE_CAMERA_DISTANCE_RADII[1.0];
@@ -1521,10 +1522,15 @@ class QwenAngleCameraWidget {
         if (!this.renderer || !this.container) return;
         const nodeWidth = Number(this.node?.size?.[0]) || 430;
         const nodeHeight = Number(this.node?.size?.[1]) || 720;
-        const width = Math.max(260, Math.floor(nodeWidth - 28));
-        const height = Math.max(
+        const hostWidth = Math.max(260, Math.floor(nodeWidth - 28));
+        const hostHeight = Math.max(
             ANGLE_CAMERA_WIDGET_MIN_HEIGHT,
             Math.floor(nodeHeight - ANGLE_CAMERA_WIDGET_NODE_CHROME)
+        );
+        const width = Math.max(240, hostWidth - ANGLE_CAMERA_WIDGET_MARGIN * 2);
+        const height = Math.max(
+            ANGLE_CAMERA_WIDGET_MIN_HEIGHT - ANGLE_CAMERA_WIDGET_MARGIN * 2,
+            hostHeight - ANGLE_CAMERA_WIDGET_MARGIN * 2
         );
 
         this.container.style.width = `${width}px`;
@@ -1535,14 +1541,16 @@ class QwenAngleCameraWidget {
         this.container.style.maxHeight = 'none';
         this.container.style.marginLeft = 'auto';
         this.container.style.marginRight = 'auto';
+        this.container.style.marginTop = `${ANGLE_CAMERA_WIDGET_MARGIN}px`;
+        this.container.style.marginBottom = `${ANGLE_CAMERA_WIDGET_MARGIN}px`;
 
         const host = this.container.parentElement;
         if (host) {
-            host.style.width = `${width}px`;
-            host.style.minWidth = `${width}px`;
-            host.style.maxWidth = `${width}px`;
-            host.style.height = `${height}px`;
-            host.style.minHeight = `${height}px`;
+            host.style.width = `${hostWidth}px`;
+            host.style.minWidth = `${hostWidth}px`;
+            host.style.maxWidth = `${hostWidth}px`;
+            host.style.height = `${hostHeight}px`;
+            host.style.minHeight = `${hostHeight}px`;
             host.style.maxHeight = 'none';
             host.style.overflow = 'visible';
             host.style.boxSizing = 'border-box';
@@ -1602,7 +1610,7 @@ app.registerExtension({
             domWidget.widget3D = widget3D;
             domWidget.computeSize = () => [
                 Math.max(260, Math.floor((node.size?.[0] || 430) - 28)),
-                ANGLE_CAMERA_WIDGET_HEIGHT + 20
+                ANGLE_CAMERA_WIDGET_HEIGHT + ANGLE_CAMERA_WIDGET_MARGIN * 2
             ];
 
             if (!node.size || node.size[0] < 430 || node.size[1] < 720) {
