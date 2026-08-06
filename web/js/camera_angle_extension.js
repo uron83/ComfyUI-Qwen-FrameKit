@@ -142,6 +142,7 @@ const ANGLE_CAMERA_SUBJECT_MAX_WIDTH = 3.0;
 const ANGLE_CAMERA_SUBJECT_OPACITY = 0.68;
 const ANGLE_CAMERA_WIDGET_MIN_HEIGHT = 420;
 const ANGLE_CAMERA_WIDGET_HEIGHT = 460;
+const ANGLE_CAMERA_WIDGET_NODE_CHROME = 190;
 
 function angleCameraRadius(distance) {
     return ANGLE_CAMERA_DISTANCE_RADII[distance] || ANGLE_CAMERA_DISTANCE_RADII[1.0];
@@ -1519,8 +1520,12 @@ class QwenAngleCameraWidget {
     resize() {
         if (!this.renderer || !this.container) return;
         const nodeWidth = Number(this.node?.size?.[0]) || 430;
+        const nodeHeight = Number(this.node?.size?.[1]) || 720;
         const width = Math.max(260, Math.floor(nodeWidth - 28));
-        const height = ANGLE_CAMERA_WIDGET_HEIGHT;
+        const height = Math.max(
+            ANGLE_CAMERA_WIDGET_MIN_HEIGHT,
+            Math.floor(nodeHeight - ANGLE_CAMERA_WIDGET_NODE_CHROME)
+        );
 
         this.container.style.width = `${width}px`;
         this.container.style.minWidth = `${width}px`;
