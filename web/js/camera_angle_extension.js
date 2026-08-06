@@ -141,7 +141,7 @@ const ANGLE_CAMERA_SUBJECT_MIN_WIDTH = 1.2;
 const ANGLE_CAMERA_SUBJECT_MAX_WIDTH = 3.0;
 const ANGLE_CAMERA_SUBJECT_OPACITY = 0.68;
 const ANGLE_CAMERA_WIDGET_MIN_HEIGHT = 420;
-const ANGLE_CAMERA_WIDGET_NODE_CHROME = 260;
+const ANGLE_CAMERA_WIDGET_NODE_CHROME = 190;
 
 function angleCameraRadius(distance) {
     return ANGLE_CAMERA_DISTANCE_RADII[distance] || ANGLE_CAMERA_DISTANCE_RADII[1.0];
@@ -1598,7 +1598,7 @@ app.registerExtension({
             domWidget.widget3D = widget3D;
             domWidget.computeSize = () => [
                 Math.max(260, Math.floor((node.size?.[0] || 430) - 28)),
-                Math.max(ANGLE_CAMERA_WIDGET_MIN_HEIGHT + 20, Math.floor((node.size?.[1] || 720) - 240))
+                Math.max(ANGLE_CAMERA_WIDGET_MIN_HEIGHT + 20, Math.floor((node.size?.[1] || 720) - 170))
             ];
 
             if (!node.size || node.size[0] < 430 || node.size[1] < 720) {
