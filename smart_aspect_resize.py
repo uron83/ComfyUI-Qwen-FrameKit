@@ -31,7 +31,7 @@ def _snap(value, snap_to):
 
 def _ratio_from_string(aspect_ratio, image_width, image_height, custom_aspect_width, custom_aspect_height):
     if aspect_ratio == "from image":
-        return image_width / image_height
+        return max(1, image_width) / max(1, image_height)
     if aspect_ratio == "custom":
         return max(1, custom_aspect_width) / max(1, custom_aspect_height)
 
@@ -70,7 +70,6 @@ class SmartAspectResize:
     def INPUT_TYPES(cls):
         return {
             "required": {
-                "image": ("IMAGE",),
                 "aspect_ratio": (ASPECT_RATIOS,),
                 "width": ("INT", {"default": 1024, "min": 0, "max": nodes.MAX_RESOLUTION, "step": 1}),
                 "height": ("INT", {"default": 1024, "min": 0, "max": nodes.MAX_RESOLUTION, "step": 1}),
@@ -80,6 +79,7 @@ class SmartAspectResize:
                 "snap_to": ("INT", {"default": 8, "min": 1, "max": 256, "step": 1}),
             },
             "optional": {
+                "image": ("IMAGE",),
                 "custom_aspect_width": ("INT", {"default": 1, "min": 1, "max": 9999, "step": 1}),
                 "custom_aspect_height": ("INT", {"default": 1, "min": 1, "max": 9999, "step": 1}),
                 "pad_color": (["black", "white"],),
@@ -94,7 +94,6 @@ class SmartAspectResize:
 
     def resize(
         self,
-        image,
         aspect_ratio,
         width,
         height,
@@ -102,11 +101,17 @@ class SmartAspectResize:
         fit,
         upscale_method,
         snap_to,
+        image=None,
         custom_aspect_width=1,
         custom_aspect_height=1,
         pad_color="black",
     ):
-        _, original_height, original_width, _ = image.shape
+        if image is None:
+            original_width = width if width > 0 else 1024
+            original_height = height if height > 0 else 1024
+        else:
+            _, original_height, original_width, _ = image.shape
+
         target_width, target_height, aspect_label = _target_size(
             original_width,
             original_height,
@@ -118,6 +123,10 @@ class SmartAspectResize:
             custom_aspect_height,
             snap_to,
         )
+
+        if image is None:
+            empty = torch.zeros((1, target_height, target_width, 3), dtype=torch.float32)
+            return (empty, target_width, target_height, aspect_label, 0, 0)
 
         if target_width == original_width and target_height == original_height:
             return (image, target_width, target_height, aspect_label, original_width, original_height)
@@ -137,7 +146,7 @@ class SmartAspectResize:
         resized = comfy.utils.common_upscale(samples, resize_width, resize_height, upscale_method, "disabled")
 
         if fit == "contain":
-            return (resized.movedim(1, -1), resize_width, resize_height, _ratio_label(resize_width, resize_height), original_width, original_height)
+            return (resized.movedim(1, -1), target_width, target_height, aspect_label, original_width, original_height)
 
         if fit == "crop":
             if resize_width > target_width:

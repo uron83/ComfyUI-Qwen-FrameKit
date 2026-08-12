@@ -45,11 +45,11 @@ Legacy multi-angle selector that outputs selected camera prompts.
 
 ### Smart Aspect Resize
 
-Resizes an image while controlling aspect ratio, width, and height.
+Resizes an image while controlling aspect ratio, width, and height. The image input is optional, so the node can also be used as an aspect-ratio size calculator.
 
 Inputs:
 
-- `image`
+- `image` (optional)
 - `aspect_ratio`: `from image`, `custom`, or a preset ratio
 - `width`
 - `height`
@@ -71,6 +71,8 @@ Outputs:
 - `original_height`
 
 When `aspect_ratio` is `from image`, the frontend reads the connected `LoadImage` dimensions when available so changing width or height updates the other side from the source image ratio.
+
+When no image is connected, the node still outputs the calculated `width`, `height`, and `aspect_ratio`. Its `image` output is a blank placeholder at the calculated size, and `original_width` / `original_height` are `0`.
 
 ## Install
 
