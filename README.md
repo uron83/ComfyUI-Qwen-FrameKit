@@ -18,6 +18,7 @@ Inputs:
 - `distance`
 - `strength_model`
 - `strength_clip`
+- `auto_download_lora`
 
 Outputs:
 
@@ -33,7 +34,7 @@ Required LoRA file:
 ComfyUI/models/loras/qwen-image-edit-2511-multiple-angles-lora.safetensors
 ```
 
-The node does not include model weights. Download the LoRA separately and place it at the path above.
+The node does not include model weights. When `auto_download_lora` is enabled, the node downloads the LoRA from `fal/Qwen-Image-Edit-2511-Multiple-Angles-LoRA` on Hugging Face the first time it is needed and saves it to the first configured ComfyUI `loras` folder. Disable `auto_download_lora` to manage the file manually at the path above.
 
 ### Camera Angle Prompt Combine
 

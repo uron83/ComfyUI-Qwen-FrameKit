@@ -5,6 +5,10 @@ The 3D visualization renders directly inside the node using Three.js.
 """
 
 import json
+import os
+import shutil
+import urllib.error
+import urllib.request
 
 import comfy.sd
 import comfy.utils
@@ -62,6 +66,11 @@ DISTANCE_MAP = {
 }
 
 ANGLE_LORA_NAME = "qwen-image-edit-2511-multiple-angles-lora.safetensors"
+ANGLE_LORA_REPO = "fal/Qwen-Image-Edit-2511-Multiple-Angles-LoRA"
+ANGLE_LORA_URLS = [
+    f"https://huggingface.co/{ANGLE_LORA_REPO}/resolve/main/{ANGLE_LORA_NAME}?download=true",
+]
+ANGLE_LORA_MODEL_PAGE = f"https://huggingface.co/{ANGLE_LORA_REPO}"
 
 # Generate all 96 combinations
 CAMERA_ANGLES = []
@@ -171,6 +180,91 @@ class CameraAnglePromptCombine:
         return (prompt,)
 
 
+def _lora_missing_message():
+    return (
+        f"Missing required LoRA: {ANGLE_LORA_NAME}\n"
+        f"Expected location: ComfyUI/models/loras/{ANGLE_LORA_NAME}\n"
+        f"Download page: {ANGLE_LORA_MODEL_PAGE}"
+    )
+
+
+def _configured_lora_paths():
+    if hasattr(folder_paths, "get_folder_paths"):
+        try:
+            paths = folder_paths.get_folder_paths("loras")
+            if paths:
+                return paths
+        except Exception:
+            pass
+
+    folder_config = getattr(folder_paths, "folder_names_and_paths", {}).get("loras")
+    if folder_config:
+        paths = folder_config[0]
+        if paths:
+            return paths
+
+    models_dir = getattr(folder_paths, "models_dir", None)
+    if models_dir:
+        return [os.path.join(models_dir, "loras")]
+
+    return []
+
+
+def _find_angle_lora():
+    if hasattr(folder_paths, "get_full_path"):
+        lora_path = folder_paths.get_full_path("loras", ANGLE_LORA_NAME)
+        if lora_path:
+            return lora_path
+
+    try:
+        return folder_paths.get_full_path_or_raise("loras", ANGLE_LORA_NAME)
+    except Exception:
+        return None
+
+
+def _download_angle_lora():
+    lora_paths = _configured_lora_paths()
+    if not lora_paths:
+        raise RuntimeError(f"{_lora_missing_message()}\nCould not find a configured ComfyUI loras folder.")
+
+    destination = os.path.join(lora_paths[0], ANGLE_LORA_NAME)
+    if os.path.exists(destination):
+        return destination
+
+    os.makedirs(os.path.dirname(destination), exist_ok=True)
+    temporary_path = destination + ".download"
+    if os.path.exists(temporary_path):
+        os.remove(temporary_path)
+
+    last_error = None
+    for url in ANGLE_LORA_URLS:
+        try:
+            print(f"FrameKit: downloading {ANGLE_LORA_NAME} from {ANGLE_LORA_MODEL_PAGE}")
+            request = urllib.request.Request(url, headers={"User-Agent": "ComfyUI-Qwen-FrameKit"})
+            with urllib.request.urlopen(request) as response, open(temporary_path, "wb") as output:
+                shutil.copyfileobj(response, output)
+            os.replace(temporary_path, destination)
+            print(f"FrameKit: downloaded {ANGLE_LORA_NAME} to {destination}")
+            return destination
+        except (OSError, urllib.error.URLError, urllib.error.HTTPError) as error:
+            last_error = error
+            if os.path.exists(temporary_path):
+                os.remove(temporary_path)
+
+    raise RuntimeError(f"{_lora_missing_message()}\nAutomatic download failed: {last_error}")
+
+
+def _get_or_download_angle_lora(auto_download_lora):
+    lora_path = _find_angle_lora()
+    if lora_path:
+        return lora_path
+
+    if auto_download_lora:
+        return _download_angle_lora()
+
+    raise FileNotFoundError(_lora_missing_message())
+
+
 class QwenImageEdit2511AngleCamera:
     """
     Single-camera control for Qwen-Image-Edit-2511 Multiple Angles LoRA.
@@ -192,6 +286,7 @@ class QwenImageEdit2511AngleCamera:
                 "distance": ("FLOAT", {"default": 1.0, "min": 0.6, "max": 1.8, "step": 0.4}),
                 "strength_model": ("FLOAT", {"default": 1.0, "min": -5.0, "max": 5.0, "step": 0.05}),
                 "strength_clip": ("FLOAT", {"default": 1.0, "min": -5.0, "max": 5.0, "step": 0.05}),
+                "auto_download_lora": ("BOOLEAN", {"default": True}),
             },
         }
 
@@ -219,11 +314,11 @@ class QwenImageEdit2511AngleCamera:
         distance = cls.snap_to_nearest(float(distance), list(DISTANCE_MAP.keys()))
         return f"<sks> {AZIMUTH_MAP[azimuth]} {ELEVATION_MAP[elevation]} {DISTANCE_MAP[distance]}"
 
-    def load_fixed_lora(self, model, clip, strength_model, strength_clip):
+    def load_fixed_lora(self, model, clip, strength_model, strength_clip, auto_download_lora):
         if strength_model == 0 and strength_clip == 0:
             return model, clip
 
-        lora_path = folder_paths.get_full_path_or_raise("loras", ANGLE_LORA_NAME)
+        lora_path = _get_or_download_angle_lora(auto_download_lora)
         lora = None
         lora_metadata = None
         if self.loaded_lora is not None:
@@ -256,8 +351,9 @@ class QwenImageEdit2511AngleCamera:
         distance,
         strength_model,
         strength_clip,
+        auto_download_lora=True,
     ):
-        model_lora, clip_lora = self.load_fixed_lora(model, clip, strength_model, strength_clip)
+        model_lora, clip_lora = self.load_fixed_lora(model, clip, strength_model, strength_clip, auto_download_lora)
         camera_prompt = ""
         if strength_model != 0 or strength_clip != 0:
             camera_prompt = self.build_camera_prompt(azimuth, elevation, distance)
